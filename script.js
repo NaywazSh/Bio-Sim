@@ -1,9 +1,5 @@
 /* 
   CONFIGURATION AREA 
-  Add your new simulations to this list.
-  
-  file: The name of your HTML file inside the 'simulations' folder.
-  thumbnail: Image URL (can be local 'assets/img.jpg' or external link).
 */
 
 const simulations = [
@@ -40,10 +36,8 @@ const simulations = [
         thumbnail: "https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&w=500&q=60" 
     }
 ];
-    // COPY AND PASTE THE BLOCK ABOVE TO ADD MORE CARDS
-];
 
-// --- DO NOT EDIT BELOW THIS LINE UNLESS YOU KNOW JS ---
+// --- LOGIC ---
 
 const grid = document.getElementById('simulation-grid');
 const viewer = document.getElementById('viewer-overlay');
@@ -51,21 +45,16 @@ const mainView = document.getElementById('library-view');
 const iframe = document.getElementById('sim-frame');
 const viewerTitle = document.getElementById('viewer-title');
 
-// 1. Generate Cards
 function init() {
-    grid.innerHTML = ""; // Clear grid
+    grid.innerHTML = ""; 
     
     simulations.forEach(sim => {
-        // Create Card Element
         const card = document.createElement('div');
         card.className = 'card';
         card.onclick = () => openViewer(sim);
 
-        // Fill HTML
         card.innerHTML = `
-            <div class="card-thumb" style="background-image: url('${sim.thumbnail}')">
-                ${!sim.thumbnail ? '<i class="fas fa-cube"></i>' : ''}
-            </div>
+            <div class="card-thumb" style="background-image: url('${sim.thumbnail}')"></div>
             <div class="card-content">
                 <span class="tag">${sim.grade}</span>
                 <h3>${sim.title}</h3>
@@ -78,27 +67,24 @@ function init() {
     });
 }
 
-// 2. Open Viewer
 function openViewer(sim) {
-    // Construct path to file
     const filePath = `simulations/${sim.file}`;
-    
     viewerTitle.innerText = sim.title;
     iframe.src = filePath;
     
+    // UI Toggles
     mainView.style.display = 'none';
+    viewer.style.display = 'flex'; // Force flex to show
     viewer.classList.remove('hidden');
-    viewer.style.display = 'flex';
 }
 
-// 3. Close Viewer
 function closeViewer() {
-    iframe.src = ""; // Stop simulation to save memory
-    viewer.style.display = 'none';
+    iframe.src = ""; 
+    viewer.style.display = 'none'; // Force hide
+    viewer.classList.add('hidden');
     mainView.style.display = 'block';
 }
 
-// 4. Fullscreen Toggle
 function toggleFullscreen() {
     if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen();
@@ -109,5 +95,4 @@ function toggleFullscreen() {
     }
 }
 
-// Initialize on load
 document.addEventListener('DOMContentLoaded', init);
