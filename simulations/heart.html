@@ -1,1 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Pumping Heart</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; }
+        #instruction {
+            position: absolute; top: 20px; width: 100%; text-align: center;
+            color: #ff6b6b; font-family: sans-serif; pointer-events: none;
+            text-shadow: 0 0 10px #ff0000;
+        }
+    </style>
+</head>
+<body>
+    <div id="instruction">
+        <h2>Human Heart Model</h2>
+        <p>Representation of ventricular contraction</p>
+    </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, heartGroup;
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x100000); // Dark red/black background
+            scene.fog = new THREE.Fog(0x100000, 10, 50);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 0, 15);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            // Lights
+            const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambient);
+
+            // Red glow light
+            const spotLight = new THREE.SpotLight(0xff0000, 2);
+            spotLight.position.set(5, 10, 10);
+            spotLight.penumbra = 0.5;
+            scene.add(spotLight);
+
+            // Back light for rim lighting
+            const backLight = new THREE.PointLight(0xffaaaa, 1);
+            backLight.position.set(-5, 5, -10);
+            scene.add(backLight);
+
+            // --- BUILD THE HEART ---
+            heartGroup = new THREE.Group();
+            scene.add(heartGroup);
+
+            // 1. Main Heart Body (Shape Extrusion)
+            const x = 0, y = 0;
+            const heartShape = new THREE.Shape();
+            // Bezier curves to draw a heart shape
+            heartShape.moveTo(x + 2.5, y + 2.5);
+            heartShape.bezierCurveTo(x + 2.5, y + 2.5, x + 2.0, y, x, y);
+            heartShape.bezierCurveTo(x - 3.0, y, x - 3.0, y + 3.5, x - 3.0, y + 3.5);
+            heartShape.bezierCurveTo(x - 3.0, y + 5.5, x - 1.0, y + 7.7, x + 2.5, y + 9.5);
+            heartShape.bezierCurveTo(x + 6.0, y + 7.7, x + 8.0, y + 5.5, x + 8.0, y + 3.5);
+            heartShape.bezierCurveTo(x + 8.0, y + 3.5, x + 8.0, y, x + 5.0, y);
+            heartShape.bezierCurveTo(x + 3.5, y, x + 2.5, y + 2.5, x + 2.5, y + 2.5);
+
+            const extrudeSettings = {
+                steps: 2,
+                depth: 2.5, // Thickness
+                bevelEnabled: true,
+                bevelThickness: 1,
+                bevelSize: 1,
+                bevelSegments: 10
+            };
+
+            const geometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+            // Center geometry
+            geometry.center();
+            
+            const material = new THREE.MeshPhysicalMaterial({ 
+                color: 0x880000, 
+                roughness: 0.2, 
+                metalness: 0.1,
+                clearcoat: 0.5,
+                clearcoatRoughness: 0.1
+            });
+            
+            const heartMesh = new THREE.Mesh(geometry, material);
+            // Rotate to stand up
+            heartMesh.rotation.z = Math.PI; 
+            heartGroup.add(heartMesh);
+
+            // 2. Arteries (Aorta / Vena Cava)
+            const tubeGeo = new THREE.CylinderGeometry(0.6, 0.6, 3, 16);
+            const tubeMat = new THREE.MeshStandardMaterial({ color: 0xaa2222 });
+
+            // Aorta (Top Left)
+            const aorta = new THREE.Mesh(tubeGeo, tubeMat);
+            aorta.position.set(-1.5, 3.5, 0);
+            aorta.rotation.z = -0.3;
+            heartGroup.add(aorta);
+
+            // Vena Cava (Top Right)
+            const vena = new THREE.Mesh(tubeGeo, tubeMat);
+            vena.position.set(1.5, 3.5, 0);
+            vena.rotation.z = 0.3;
+            heartGroup.add(vena);
+
+            animate();
+        }
+
+        let time = 0;
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.05;
+
+            // --- HEARTBEAT MATH ---
+            // A realistic heartbeat is not a perfect sine wave.
+            // It is a quick expansion followed by a pause.
+            // Formula: Scale = Base + PulseStrength * sin(time)
+            
+            // This creates a "Lub-Dub" pattern using nested sine waves
+            const beat = Math.sin(time * 3) * Math.sin(time * 3) * Math.sin(time * 3);
+            
+            // Apply scale
+            const scale = 1 + (beat * 0.15); 
+            
+            heartGroup.scale.set(scale, scale, scale);
+            heartGroup.rotation.y += 0.005; // Slow rotation
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        init();
+    </script>
+</body>
+</html>
