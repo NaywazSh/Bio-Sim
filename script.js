@@ -23,6 +23,14 @@ const simulations = [
         file: "dna-helix.html",
         thumbnail: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=500&q=60" 
     },
+  {
+    id: 3,
+    title: "Human Heart",
+    description: "Real-time pumping heart model.",
+    grade: "Grade 11",
+    file: "heart.html",
+    thumbnail: "assets/heart.jpg"
+},
     // COPY AND PASTE THE BLOCK ABOVE TO ADD MORE CARDS
 ];
 
