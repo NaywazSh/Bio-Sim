@@ -80,4 +80,53 @@ footer { text-align: center; padding: 2rem; background: white; margin-top: 4rem;
 @media (max-width: 768px) {
     .hero h1 { font-size: 2rem; }
     .grid { grid-template-columns: 1fr; }
+    /* --- PLAYER PAGE STYLES --- */
+
+/* Make the player take up remaining height after navbar */
+.player-container {
+    height: calc(100vh - 70px); /* 70px is approx navbar height */
+    display: flex;
+    flex-direction: column;
+    background: #000;
+}
+
+.player-header {
+    background: #1e293b;
+    color: white;
+    padding: 0.8rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #334155;
+}
+
+.player-header h2 {
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+.fs-btn {
+    background: transparent;
+    border: 1px solid #475569;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.fs-btn:hover { background: var(--primary); border-color: var(--primary); }
+
+.iframe-wrapper {
+    flex-grow: 1; /* Takes all remaining space */
+    width: 100%;
+    position: relative;
+}
+
+iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
 }
