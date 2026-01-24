@@ -6,10 +6,6 @@
   thumbnail: Image URL (can be local 'assets/img.jpg' or external link).
 */
 
-   /* 
-  CONFIGURATION AREA 
-*/
-
 const simulations = [
     {
         id: 1,
