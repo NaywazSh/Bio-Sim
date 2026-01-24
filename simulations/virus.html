@@ -2,118 +2,325 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Virus Simulation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bacteriophage T4 Simulation</title>
     <style>
-        body { margin: 0; overflow: hidden; background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%); }
-        .label {
-            position: absolute; color: #ff5555; font-family: monospace; font-weight: bold;
-            background: rgba(0,0,0,0.5); padding: 5px; border-radius: 4px; display: none;
+        :root {
+            --neon-purple: #bc13fe;
+            --neon-teal: #00f3ff;
+            --danger-red: #ff3131;
+        }
+        body { margin: 0; overflow: hidden; background: #05050a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; }
+        
+        #overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            pointer-events: none;
+            max-width: 320px;
+        }
+
+        .panel {
+            background: rgba(10, 10, 25, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid var(--neon-purple);
+            margin-bottom: 15px;
+            pointer-events: auto;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 { margin: 0; font-size: 1.4rem; color: var(--neon-teal); text-transform: uppercase; letter-spacing: 2px; }
+        p { font-size: 0.9rem; line-height: 1.5; opacity: 0.8; }
+
+        .annotation {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--neon-teal);
+            padding: 10px;
+            border-radius: 6px;
+            display: none;
+            font-size: 0.85rem;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            pointer-events: auto;
+        }
+
+        .btn {
+            background: rgba(188, 19, 254, 0.2);
+            border: 1px solid var(--neon-purple);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            background: var(--neon-purple);
+            box-shadow: 0 0 15px var(--neon-purple);
+        }
+
+        .active-btn {
+            background: var(--neon-purple);
+        }
+
+        #status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+            font-family: monospace;
+            color: var(--neon-teal);
+            opacity: 0.6;
         }
     </style>
 </head>
 <body>
-    
+
+    <div id="overlay">
+        <div class="panel">
+            <h1>Bacteriophage T4</h1>
+            <p>The "Lunar Lander" of the virus world. A complex virus that infects bacteria by injecting its genetic material.</p>
+        </div>
+        <div id="part-info" class="panel annotation">
+            <strong id="part-title" style="color: var(--neon-teal);">Part Name</strong><br>
+            <span id="part-text">Hover over parts to learn.</span>
+        </div>
+    </div>
+
+    <div id="status">SCANNING VIRAL STRUCTURE...<br>MAGNIFICATION: 500,000X</div>
+
+    <div id="controls">
+        <button class="btn" onclick="toggleXray()" id="xrayBtn">Toggle DNA X-Ray</button>
+        <button class="btn" onclick="resetView()">Reset View</button>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
     <script>
-        let scene, camera, renderer, virusGroup;
+        let scene, camera, renderer, virusGroup, dnaGroup, controls;
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let isXray = false;
+        let INTERSECTED;
+
+        const info = {
+            'Capsid': 'The icosahedral protein shell containing the viral DNA. It protects the genetic payload until injection.',
+            'Tail Sheath': 'A contractile tube that acts like a syringe. It shrinks to drive the inner tube through the bacterial cell wall.',
+            'Tail Fibers': 'Sensory appendages that recognize and bind to specific receptors on the surface of the host bacteria.',
+            'Base Plate': 'The mechanical hub that triggers the contraction of the sheath once the fibers are securely attached.',
+            'DNA': 'The genetic blueprint of the virus, coiled tightly inside the head under high pressure.'
+        };
 
         function init() {
             scene = new THREE.Scene();
-            // No background color set here, using CSS gradient
+            scene.fog = new THREE.FogExp2(0x05050a, 0.02);
 
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 2, 12);
+            camera.position.set(0, 3, 15);
 
-            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
             document.body.appendChild(renderer.domElement);
 
-            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
             controls.autoRotate = true;
-            controls.autoRotateSpeed = 1.0;
+            controls.autoRotateSpeed = 0.5;
 
             // Lights
-            const ambient = new THREE.AmbientLight(0x404040, 2);
+            const ambient = new THREE.AmbientLight(0x4040ff, 0.5);
             scene.add(ambient);
-            const spotLight = new THREE.SpotLight(0xffffff, 2);
-            spotLight.position.set(10, 10, 10);
-            scene.add(spotLight);
             
-            // Build Virus
+            const p1 = new THREE.PointLight(0xbc13fe, 2, 20);
+            p1.position.set(5, 5, 5);
+            scene.add(p1);
+
+            const p2 = new THREE.PointLight(0x00f3ff, 2, 20);
+            p2.position.set(-5, -5, 5);
+            scene.add(p2);
+
             virusGroup = new THREE.Group();
             scene.add(virusGroup);
             
-            const proteinMat = new THREE.MeshPhongMaterial({ color: 0x800080, flatShading: true }); // Purple
-            const dnaMat = new THREE.MeshPhongMaterial({ color: 0x00ffcc }); // Teal
+            createVirus();
+            createBackgroundParticles();
 
-            // 1. Head (Capsid) - Icosahedron
-            const headGeo = new THREE.IcosahedronGeometry(2.5, 0);
-            const head = new THREE.Mesh(headGeo, proteinMat);
-            head.position.y = 3;
-            virusGroup.add(head);
-
-            // 2. Neck/Tail
-            const tailGeo = new THREE.CylinderGeometry(0.8, 0.8, 3, 8);
-            const tail = new THREE.Mesh(tailGeo, new THREE.MeshPhongMaterial({color: 0x550055}));
-            tail.position.y = 0.5;
-            virusGroup.add(tail);
-
-            // 3. Base Plate
-            const baseGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.2, 6);
-            const base = new THREE.Mesh(baseGeo, proteinMat);
-            base.position.y = -1;
-            virusGroup.add(base);
-
-            // 4. Legs (Spikes)
-            for(let i=0; i<6; i++) {
-                const legGroup = new THREE.Group();
-                const angle = (i / 6) * Math.PI * 2;
-                
-                // Upper Leg
-                const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 0.2), proteinMat);
-                leg1.position.set(0, -1, 0);
-                leg1.rotation.z = Math.PI / 4; // Tilt out
-                
-                // Lower Leg
-                const leg2 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 0.2), proteinMat);
-                leg2.position.set(1, -2.2, 0);
-                leg2.rotation.z = -Math.PI / 4; // Tilt down
-                
-                legGroup.add(leg1);
-                legGroup.add(leg2);
-                
-                // Position and rotate around center
-                legGroup.position.set(Math.cos(angle)*1.2, -1, Math.sin(angle)*1.2);
-                legGroup.rotation.y = -angle; // Face outward
-                
-                virusGroup.add(legGroup);
-            }
-
+            window.addEventListener('resize', onWindowResize);
+            document.addEventListener('mousemove', onMouseMove);
             animate();
         }
 
-        let time = 0;
-        function animate() {
-            requestAnimationFrame(animate);
-            time += 0.03;
+        function createVirus() {
+            // Materials
+            const shellMat = new THREE.MeshPhongMaterial({ 
+                color: 0x6a0dad, 
+                shininess: 100, 
+                flatShading: true,
+                transparent: true,
+                opacity: 0.9
+            });
+            const metalMat = new THREE.MeshStandardMaterial({ color: 0x444466, metalness: 0.8, roughness: 0.2 });
 
-            // Floating animation
-            virusGroup.position.y = Math.sin(time) * 0.5;
-            
-            // Subtle "breathing" scale
-            const scale = 1 + Math.sin(time * 2) * 0.02;
-            virusGroup.scale.set(scale, scale, scale);
+            // 1. Head (Capsid)
+            const headGeo = new THREE.IcosahedronGeometry(3, 0);
+            const head = new THREE.Mesh(headGeo, shellMat);
+            head.position.y = 4.5;
+            head.userData.name = 'Capsid';
+            virusGroup.add(head);
 
-            renderer.render(scene, camera);
+            // 2. DNA (Inside Head)
+            dnaGroup = new THREE.Group();
+            const dnaCurve = new THREE.TorusKnotGeometry(1.5, 0.4, 100, 16);
+            const dnaMat = new THREE.MeshPhongMaterial({ color: 0x00f3ff, emissive: 0x00f3ff, emissiveIntensity: 0.5 });
+            const dna = new THREE.Mesh(dnaCurve, dnaMat);
+            dna.position.copy(head.position);
+            dna.visible = false;
+            dna.userData.name = 'DNA';
+            dnaGroup.add(dna);
+            scene.add(dnaGroup);
+
+            // 3. Tail Sheath
+            const sheathGeo = new THREE.CylinderGeometry(0.8, 0.8, 4.5, 12);
+            const sheath = new THREE.Mesh(sheathGeo, metalMat);
+            sheath.position.y = 0.75;
+            sheath.userData.name = 'Tail Sheath';
+            virusGroup.add(sheath);
+
+            // Collar
+            const collarGeo = new THREE.TorusGeometry(1, 0.15, 8, 20);
+            const collar = new THREE.Mesh(collarGeo, metalMat);
+            collar.position.y = 3;
+            collar.rotation.x = Math.PI/2;
+            virusGroup.add(collar);
+
+            // 4. Base Plate
+            const baseGeo = new THREE.CylinderGeometry(1.5, 1.8, 0.5, 6);
+            const base = new THREE.Mesh(baseGeo, metalMat);
+            base.position.y = -1.5;
+            base.userData.name = 'Base Plate';
+            virusGroup.add(base);
+
+            // 5. Tail Fibers (Legs)
+            const fiberMat = new THREE.MeshStandardMaterial({ color: 0x222233, metalness: 0.5 });
+            for(let i=0; i<6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                const fiberGroup = new THREE.Group();
+                
+                // Joint 1
+                const j1 = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 4), fiberMat);
+                j1.position.set(1.5, -1, 0);
+                j1.rotation.z = -Math.PI / 4;
+                
+                // Joint 2
+                const j2 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 5), fiberMat);
+                j2.position.set(3, -3.5, 0);
+                j2.rotation.z = Math.PI / 6;
+
+                fiberGroup.add(j1, j2);
+                fiberGroup.position.set(Math.cos(angle)*1.2, -1.5, Math.sin(angle)*1.2);
+                fiberGroup.rotation.y = -angle;
+                fiberGroup.userData.name = 'Tail Fibers';
+                
+                // Add tag to children
+                fiberGroup.children.forEach(c => c.userData.name = 'Tail Fibers');
+                virusGroup.add(fiberGroup);
+            }
         }
 
-        window.addEventListener('resize', () => {
+        function createBackgroundParticles() {
+            const geo = new THREE.BufferGeometry();
+            const vertices = [];
+            for (let i = 0; i < 2000; i++) {
+                vertices.push(THREE.MathUtils.randFloatSpread(100), THREE.MathUtils.randFloatSpread(100), THREE.MathUtils.randFloatSpread(100));
+            }
+            geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            const mat = new THREE.PointsMaterial({ color: 0x4444ff, size: 0.1, transparent: true, opacity: 0.5 });
+            const points = new THREE.Points(geo, mat);
+            scene.add(points);
+        }
+
+        function toggleXray() {
+            isXray = !isXray;
+            const btn = document.getElementById('xrayBtn');
+            btn.classList.toggle('active-btn');
+            
+            virusGroup.children.forEach(child => {
+                if (child.userData.name === 'Capsid') {
+                    child.material.opacity = isXray ? 0.2 : 0.9;
+                }
+            });
+            dnaGroup.children[0].visible = isXray;
+        }
+
+        function resetView() {
+            camera.position.set(0, 3, 15);
+            controls.target.set(0, 0, 0);
+            controls.update();
+        }
+
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        }
+
+        function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const t = performance.now() * 0.001;
+
+            // Breathing and Floating
+            virusGroup.position.y = Math.sin(t) * 0.3;
+            if (isXray) dnaGroup.children[0].rotation.y += 0.02;
+
+            // Interaction
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(virusGroup.children, true);
+            const infoPanel = document.getElementById('part-info');
+
+            if (intersects.length > 0) {
+                const obj = intersects[0].object;
+                const name = obj.userData.name || (obj.parent && obj.parent.userData.name);
+                
+                if (name && info[name]) {
+                    infoPanel.style.display = 'block';
+                    document.getElementById('part-title').innerText = name;
+                    document.getElementById('part-text').innerText = info[name];
+                    
+                    if (INTERSECTED != obj) {
+                        if (INTERSECTED && INTERSECTED.material.emissive) INTERSECTED.material.emissive.setHex(0x000000);
+                        INTERSECTED = obj;
+                        if (INTERSECTED.material.emissive) INTERSECTED.material.emissive.setHex(0x333333);
+                    }
+                }
+            } else {
+                if (INTERSECTED && INTERSECTED.material.emissive) INTERSECTED.material.emissive.setHex(0x000000);
+                INTERSECTED = null;
+                infoPanel.style.display = 'none';
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
 
         init();
     </script>
