@@ -2,168 +2,305 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>3D Plant Cell</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Interactive Plant Cell</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #0f172a; font-family: sans-serif; }
-        #info { 
-            position: absolute; top: 10px; width: 100%; text-align: center;
-            color: white; background: rgba(0,0,0,0.5); padding: 5px; pointer-events: none; 
+        body { margin: 0; overflow: hidden; background: #050a05; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; }
+        canvas { display: block; }
+        
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
             z-index: 10;
+            pointer-events: none;
         }
-        .controls { 
-            position: absolute; bottom: 20px; width: 100%; text-align: center; 
-            z-index: 10;
+
+        .label-card {
+            background: rgba(0, 40, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4caf50;
+            backdrop-filter: blur(5px);
+            margin-bottom: 10px;
+            pointer-events: auto;
+            max-width: 250px;
+            transition: transform 0.2s;
         }
-        button { 
-            padding: 10px 20px; margin: 0 5px; cursor: pointer; 
-            background: #10b981; border: none; border-radius: 4px;
-            color: white; font-weight: bold; font-size: 14px;
+
+        .label-card:hover { transform: translateX(5px); }
+        h1 { margin: 0 0 5px 0; font-size: 1.2rem; color: #a2f2a2; }
+        p { margin: 0; font-size: 0.85rem; line-height: 1.4; opacity: 0.9; }
+
+        #controls-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            pointer-events: none;
         }
-        button:hover { background: #059669; }
+
+        .legend {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item { display: flex; align-items: center; margin-bottom: 5px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 10px; }
     </style>
 </head>
 <body>
-    <div id="info"><h3>Plant Cell Model</h3><p>Left Click to Rotate | Scroll to Zoom</p></div>
-    
-    <div class="controls">
-        <button onclick="highlight('nucleus')">Nucleus</button>
-        <button onclick="highlight('chloroplast')">Chloroplasts</button>
-        <button onclick="highlight('vacuole')">Vacuole</button>
-        <button onclick="resetView()">Reset Colors</button>
+
+    <div id="ui-container">
+        <div class="label-card">
+            <h1>Plant Cell (Eukaryotic)</h1>
+            <p>A high-quality 3D visualization of the structural and functional units of plant life.</p>
+        </div>
+        <div id="organelle-info" class="label-card" style="display:none;">
+            <h1 id="part-name">Organelle</h1>
+            <p id="part-desc">Hover over or click parts to explore.</p>
+        </div>
     </div>
 
-    <!-- Using a slightly newer version (r132) to ensure stability -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r132/three.min.js"></script>
-    <script src="https://unpkg.com/three@0.132.0/examples/js/controls/OrbitControls.js"></script>
+    <div class="legend">
+        <div class="legend-item"><div class="dot" style="background:#2e7d32"></div>Cell Wall</div>
+        <div class="legend-item"><div class="dot" style="background:#81c784"></div>Cytoplasm</div>
+        <div class="legend-item"><div class="dot" style="background:#4fc3f7"></div>Vacuole</div>
+        <div class="legend-item"><div class="dot" style="background:#f44336"></div>Nucleus</div>
+        <div class="legend-item"><div class="dot" style="background:#2ecc71"></div>Chloroplast</div>
+        <div class="legend-item"><div class="dot" style="background:#e67e22"></div>Mitochondria</div>
+    </div>
 
+    <div id="controls-hint">Drag to Rotate • Scroll to Zoom</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        let scene, camera, renderer, controls;
-        let nucleus, vacuole, chloroplasts = [];
+        let scene, camera, renderer, cellGroup;
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let INTERSECTED;
+
+        const infoBox = document.getElementById('organelle-info');
+        const partName = document.getElementById('part-name');
+        const partDesc = document.getElementById('part-desc');
+
+        const descriptions = {
+            'Cell Wall': 'Rigid outer layer made of cellulose that provides structural support and protection.',
+            'Cytoplasm': 'Jelly-like substance (cytosol) filling the cell where organelles are suspended.',
+            'Vacuole': 'Large central sac that stores water and maintains turgor pressure.',
+            'Nucleus': 'The control center containing genetic material (DNA).',
+            'Chloroplast': 'Site of photosynthesis, converting sunlight into chemical energy (glucose).',
+            'Mitochondria': 'The powerhouse of the cell, generating ATP through cellular respiration.',
+            'Endoplasmic Reticulum': 'Network of membranes involved in protein and lipid synthesis.'
+        };
 
         function init() {
-            // 1. Scene Setup
+            // Scene setup
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0f172a); // Dark Blue-Grey
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 12;
 
-            // 2. Camera
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 0, 8); // Move back to see everything
-
-            // 3. Renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
             document.body.appendChild(renderer.domElement);
 
-            // 4. Controls
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
-
-            // 5. Lighting (Critical for 3D visibility)
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
 
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            dirLight.position.set(5, 5, 5);
-            scene.add(dirLight);
+            const pointLight = new THREE.PointLight(0xffffff, 0.8);
+            pointLight.position.set(10, 10, 10);
+            scene.add(pointLight);
 
-            // --- BUILD THE CELL ---
+            cellGroup = new THREE.Group();
+            scene.add(cellGroup);
 
-            // A. Cell Wall (Green Box)
-            const wallGeo = new THREE.BoxGeometry(5, 3.5, 3.5);
-            // Using MeshLambert for better performance and visibility
-            const wallMat = new THREE.MeshLambertMaterial({ 
-                color: 0x4ade80, 
-                transparent: true, 
-                opacity: 0.15,
-                side: THREE.DoubleSide,
-                depthWrite: false // Helps with transparency bugs
-            });
-            const cellWall = new THREE.Mesh(wallGeo, wallMat);
+            createPlantCell();
+
+            // Interactions
+            window.addEventListener('resize', onWindowResize);
+            document.addEventListener('mousemove', onMouseMove);
             
-            // Wireframe Outline
-            const edges = new THREE.EdgesGeometry(wallGeo);
-            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x22c55e }));
-            cellWall.add(line);
-            scene.add(cellWall);
+            // Basic rotation logic
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
 
-            // B. Nucleus (Red Sphere)
-            const nucGeo = new THREE.SphereGeometry(0.7, 32, 32);
-            const nucMat = new THREE.MeshLambertMaterial({ color: 0xe11d48 });
-            nucleus = new THREE.Mesh(nucGeo, nucMat);
-            nucleus.position.set(-1.2, 0, 0);
-            scene.add(nucleus);
-
-            // C. Vacuole (Blue Bubble)
-            const vacGeo = new THREE.SphereGeometry(1.0, 32, 32);
-            const vacMat = new THREE.MeshLambertMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.6 });
-            vacuole = new THREE.Mesh(vacGeo, vacMat);
-            vacuole.position.set(1.0, 0, 0);
-            vacuole.scale.set(1, 0.7, 1); // Squish it slightly
-            scene.add(vacuole);
-
-            // D. Chloroplasts (Green Cylinders)
-            // FIXED: Switched from CapsuleGeometry to CylinderGeometry for compatibility
-            const chloroGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.8, 16);
-            const chloroMat = new THREE.MeshLambertMaterial({ color: 0x15803d }); // Dark Green
-
-            const positions = [
-                {x: -1, y: 1.0, z: 1.0}, 
-                {x: 0, y: -1.0, z: -1.0}, 
-                {x: 1.8, y: 0.8, z: 0.8}, 
-                {x: -1.8, y: -0.5, z: 1.0}, 
-                {x: 1.2, y: -1.0, z: -0.8},
-                {x: 0.5, y: 1.2, z: -0.5}
-            ];
-
-            positions.forEach(pos => {
-                const chloro = new THREE.Mesh(chloroGeo, chloroMat);
-                chloro.position.set(pos.x, pos.y, pos.z);
-                
-                // Random rotation to make them look organic
-                chloro.rotation.x = Math.random() * Math.PI;
-                chloro.rotation.z = Math.random() * Math.PI;
-                
-                scene.add(chloro);
-                chloroplasts.push(chloro);
+            document.addEventListener('mousedown', () => isDragging = true);
+            document.addEventListener('mouseup', () => isDragging = false);
+            document.addEventListener('mousemove', (e) => {
+                if(isDragging) {
+                    const deltaMove = {
+                        x: e.offsetX - previousMousePosition.x,
+                        y: e.offsetY - previousMousePosition.y
+                    };
+                    cellGroup.rotation.y += deltaMove.x * 0.01;
+                    cellGroup.rotation.x += deltaMove.y * 0.01;
+                }
+                previousMousePosition = { x: e.offsetX, y: e.offsetY };
             });
 
             animate();
         }
 
-        // --- INTERACTION LOGIC ---
+        function createPlantCell() {
+            // 1. Cell Wall (Semi-transparent Boxy Shape)
+            const wallGeo = new THREE.BoxGeometry(8, 9, 6);
+            const wallMat = new THREE.MeshPhongMaterial({
+                color: 0x2e7d32,
+                transparent: true,
+                opacity: 0.15,
+                side: THREE.BackSide
+            });
+            const cellWall = new THREE.Mesh(wallGeo, wallMat);
+            cellWall.userData = { name: 'Cell Wall' };
+            cellGroup.add(cellWall);
 
-        function highlight(part) {
-            // 1. Reset everyone to default colors
-            nucleus.material.color.setHex(0xe11d48); // Red
-            vacuole.material.color.setHex(0x3b82f6); // Blue
-            chloroplasts.forEach(c => c.material.color.setHex(0x15803d)); // Green
+            // Outline for Cell Wall
+            const edges = new THREE.EdgesGeometry(wallGeo);
+            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x4caf50, transparent: true, opacity: 0.5 }));
+            cellGroup.add(line);
 
-            // 2. Make the selected part Bright Yellow
-            if(part === 'nucleus') nucleus.material.color.setHex(0xffff00);
-            if(part === 'vacuole') vacuole.material.color.setHex(0xffff00);
-            if(part === 'chloroplast') chloroplasts.forEach(c => c.material.color.setHex(0xffff00));
+            // 2. Cytoplasm (Inner bulk)
+            const cytoGeo = new THREE.BoxGeometry(7.5, 8.5, 5.5);
+            const cytoMat = new THREE.MeshPhongMaterial({
+                color: 0x81c784,
+                transparent: true,
+                opacity: 0.1
+            });
+            const cytoplasm = new THREE.Mesh(cytoGeo, cytoMat);
+            cytoplasm.userData = { name: 'Cytoplasm' };
+            cellGroup.add(cytoplasm);
+
+            // 3. Central Vacuole (Large blue blob)
+            const vacuoleGeo = new THREE.SphereGeometry(2.5, 32, 32);
+            vacuoleGeo.scale(1, 1.4, 0.8);
+            const vacuoleMat = new THREE.MeshPhongMaterial({ color: 0x4fc3f7, transparent: true, opacity: 0.6, shininess: 100 });
+            const vacuole = new THREE.Mesh(vacuoleGeo, vacuoleMat);
+            vacuole.position.set(0.5, 0, 0);
+            vacuole.userData = { name: 'Vacuole' };
+            cellGroup.add(vacuole);
+
+            // 4. Nucleus (Purple sphere)
+            const nucleusGroup = new THREE.Group();
+            const nucGeo = new THREE.SphereGeometry(1, 32, 32);
+            const nucMat = new THREE.MeshPhongMaterial({ color: 0xf44336 });
+            const nucleus = new THREE.Mesh(nucGeo, nucMat);
+            nucleus.userData = { name: 'Nucleus' };
+            nucleusGroup.add(nucleus);
+
+            const nucleolusGeo = new THREE.SphereGeometry(0.3, 16, 16);
+            const nucleolusMat = new THREE.MeshPhongMaterial({ color: 0x311b92 });
+            const nucleolus = new THREE.Mesh(nucleolusGeo, nucleolusMat);
+            nucleolus.position.z = 0.5;
+            nucleusGroup.add(nucleolus);
+
+            nucleusGroup.position.set(-2, 2.5, 1.5);
+            cellGroup.add(nucleusGroup);
+
+            // 5. Chloroplasts
+            const chloroGeo = new THREE.SphereGeometry(0.6, 20, 20);
+            chloroGeo.scale(1, 0.4, 1.5);
+            const chloroMat = new THREE.MeshPhongMaterial({ color: 0x2ecc71 });
+
+            const positions = [[2.5, 3, 1.5], [-2.5, -3, 1], [2, -3, -1.5], [-2.5, 1, -2], [3, 0, 2]];
+            positions.forEach(pos => {
+                const cp = new THREE.Mesh(chloroGeo, chloroMat);
+                cp.position.set(...pos);
+                cp.rotation.set(Math.random(), Math.random(), Math.random());
+                cp.userData = { name: 'Chloroplast' };
+                cellGroup.add(cp);
+            });
+
+            // 6. Mitochondria (Custom Capsule for r128 compatibility)
+            const mitoMat = new THREE.MeshPhongMaterial({ color: 0xe67e22 });
+            const mitoPositions = [[-1, -3, 2], [2, 3, -1], [-3, -1, -1.5], [1, 1, -2]];
+
+            mitoPositions.forEach(pos => {
+                const mitoGroup = new THREE.Group();
+                
+                const bodyGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.6, 12);
+                const body = new THREE.Mesh(bodyGeo, mitoMat);
+                
+                const capGeo = new THREE.SphereGeometry(0.25, 12, 12);
+                const capTop = new THREE.Mesh(capGeo, mitoMat);
+                capTop.position.y = 0.3;
+                const capBottom = new THREE.Mesh(capGeo, mitoMat);
+                capBottom.position.y = -0.3;
+                
+                mitoGroup.add(body, capTop, capBottom);
+                mitoGroup.position.set(...pos);
+                mitoGroup.rotation.set(Math.random(), Math.random(), Math.random());
+                
+                // Assign metadata to children for raycasting
+                mitoGroup.children.forEach(c => c.userData = { name: 'Mitochondria' });
+                cellGroup.add(mitoGroup);
+            });
+
+            // 7. Endoplasmic Reticulum
+            const erMat = new THREE.MeshPhongMaterial({ color: 0xe91e63, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+            for(let i=0; i<3; i++) {
+                const erGeo = new THREE.TorusGeometry(1.5 + (i*0.3), 0.1, 8, 50, Math.PI);
+                const er = new THREE.Mesh(erGeo, erMat);
+                er.position.set(-2, 2.5, 1.5);
+                er.rotation.x = Math.PI/2 + (i*0.2);
+                er.userData = { name: 'Endoplasmic Reticulum' };
+                cellGroup.add(er);
+            }
         }
 
-        function resetView() {
-            controls.reset();
-            highlight('none');
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
         function animate() {
             requestAnimationFrame(animate);
-            controls.update(); // Required for damping
+            cellGroup.rotation.y += 0.002;
+            
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(cellGroup.children, true);
+
+            if (intersects.length > 0) {
+                const obj = intersects[0].object;
+                const name = obj.userData.name || (obj.parent && obj.parent.userData.name);
+                
+                if (name && descriptions[name]) {
+                    infoBox.style.display = 'block';
+                    partName.innerText = name;
+                    partDesc.innerText = descriptions[name];
+                    
+                    if (INTERSECTED != obj) {
+                        if (INTERSECTED && INTERSECTED.material && INTERSECTED.material.emissive) INTERSECTED.material.emissive.setHex(0x000000);
+                        INTERSECTED = obj;
+                        if (INTERSECTED.material && INTERSECTED.material.emissive) INTERSECTED.material.emissive.setHex(0x333333);
+                    }
+                }
+            } else {
+                if (INTERSECTED && INTERSECTED.material && INTERSECTED.material.emissive) INTERSECTED.material.emissive.setHex(0x000000);
+                INTERSECTED = null;
+                infoBox.style.display = 'none';
+            }
+
             renderer.render(scene, camera);
         }
 
-        // Handle Resizing
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-        init();
+        window.onload = init;
     </script>
 </body>
 </html>
