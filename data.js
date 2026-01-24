@@ -4,7 +4,7 @@ const simulations = [
     // GRADE 7-9 (Free Content)
     // =========================================
     {
-        id: 'bio_1',
+        id: 'plant-cell',
         title: "Plant Cell Structure",
         topic: "Cell Biology",
         grade: "Grade 7-9", 
@@ -18,7 +18,7 @@ const simulations = [
     // GRADE 10-12 (Premium Content)
     // =========================================
     {
-        id: 'bio_2',
+        id: 'dna-helix',
         title: "DNA Double Helix",
         topic: "Genetics",
         grade: "Grade 10",
@@ -28,7 +28,7 @@ const simulations = [
         isFree: false
     },
     {
-        id: 'bio_3',
+        id: 'heart',
         title: "Human Heart",
         topic: "Anatomy",
         grade: "Grade 11",
@@ -38,7 +38,7 @@ const simulations = [
         isFree: false
     },
     {
-        id: 'bio_4',
+        id: 'virus',
         title: "Bacteriophage Virus",
         topic: "Microbiology",
         grade: "Grade 12",
