@@ -1,3 +1,4 @@
+/* --- VARIABLES --- */
 :root {
     --primary: #10b981; 
     --dark: #0f172a;    
@@ -9,12 +10,16 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
 
+/* Vital for full height player */
+html, body { height: 100%; } 
+
 body { background-color: var(--light); color: var(--dark); overflow-x: hidden; }
 
-/* Navbar */
+/* --- NAVBAR --- */
 .navbar {
+    height: 70px; /* Fixed height */
     display: flex; justify-content: space-between; align-items: center;
-    padding: 1rem 5%; background: white; box-shadow: var(--shadow);
+    padding: 0 5%; background: white; box-shadow: var(--shadow);
     position: sticky; top: 0; z-index: 100;
 }
 .logo { font-size: 1.5rem; font-weight: 700; color: var(--dark); }
@@ -22,16 +27,12 @@ body { background-color: var(--light); color: var(--dark); overflow-x: hidden; }
 .nav-links a { text-decoration: none; color: var(--dark); margin-left: 2rem; font-weight: 600; }
 .nav-links a:hover { color: var(--primary); }
 
-/* Hero */
+/* --- HERO & HOME --- */
 .hero {
     text-align: center; padding: 4rem 1rem; background: linear-gradient(135deg, #d1fae5 0%, #ffffff 100%);
 }
 .hero h1 { font-size: 2.5rem; margin-bottom: 1rem; color: var(--dark); }
-.hero p { color: var(--text-gray); font-size: 1.1rem; max-width: 600px; margin: 0 auto; }
-
-/* Grid Container */
 .container { padding: 2rem 5%; max-width: 1400px; margin: 0 auto; }
-.filter-bar { margin-bottom: 2rem; }
 
 .grid {
     display: grid;
@@ -39,88 +40,56 @@ body { background-color: var(--light); color: var(--dark); overflow-x: hidden; }
     gap: 2rem;
 }
 
-/* Cards */
+/* --- CARDS --- */
 .card {
     background: var(--card-bg); border-radius: 12px; overflow: hidden;
     box-shadow: var(--shadow); transition: transform 0.3s ease;
     cursor: pointer; border: 1px solid #e2e8f0; display: flex; flex-direction: column;
-    text-decoration: none; /* Removes underline from link */
-    color: inherit;
+    text-decoration: none; color: inherit;
 }
-
 .card:hover { transform: translateY(-5px); border-color: var(--primary); }
-
-.card-thumb {
-    height: 180px; background-color: #e2e8f0; 
-    background-size: cover; background-position: center;
-}
-
+.card-thumb { height: 180px; background-color: #e2e8f0; background-size: cover; background-position: center; }
 .card-content { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; }
-
 .tag {
     display: inline-block; padding: 0.25rem 0.75rem; background: #d1fae5;
     color: var(--primary); border-radius: 20px; font-size: 0.8rem; font-weight: 600;
     margin-bottom: 0.5rem; width: fit-content;
 }
-
-.card h3 { margin-bottom: 0.5rem; font-size: 1.25rem; }
-.card p { color: var(--text-gray); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem; }
-
 .launch-btn {
     margin-top: auto; padding: 0.75rem; background: var(--dark); color: white;
     text-align: center; border-radius: 6px; font-weight: 600; transition: 0.2s;
 }
-
 .card:hover .launch-btn { background: var(--primary); }
-
-/* Footer */
 footer { text-align: center; padding: 2rem; background: white; margin-top: 4rem; color: var(--text-gray); }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .hero h1 { font-size: 2rem; }
-    .grid { grid-template-columns: 1fr; }
-    /* --- PLAYER PAGE STYLES --- */
+/* --- PLAYER PAGE STYLES (THE FIX) --- */
 
-/* Make the player take up remaining height after navbar */
 .player-container {
-    height: calc(100vh - 70px); /* 70px is approx navbar height */
+    /* Calculate remaining height: Screen Height minus Navbar Height */
+    height: calc(100vh - 70px); 
+    width: 100vw;
     display: flex;
     flex-direction: column;
-    background: #000;
+    background: #000; /* Black background for contrast */
 }
 
 .player-header {
-    background: #1e293b;
+    background: #1e293b; /* Dark bar */
     color: white;
-    padding: 0.8rem 2rem;
+    padding: 10px 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #334155;
+    flex-shrink: 0; /* Prevents header from shrinking */
 }
-
-.player-header h2 {
-    font-size: 1.2rem;
-    font-weight: 500;
-}
-
-.fs-btn {
-    background: transparent;
-    border: 1px solid #475569;
-    color: white;
-    padding: 5px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.fs-btn:hover { background: var(--primary); border-color: var(--primary); }
 
 .iframe-wrapper {
     flex-grow: 1; /* Takes all remaining space */
     width: 100%;
+    height: 100%; /* Forces full height */
     position: relative;
+    background: black;
 }
 
 iframe {
@@ -129,4 +98,9 @@ iframe {
     border: none;
     display: block;
 }
+
+.fs-btn {
+    background: transparent; border: 1px solid #94a3b8; color: white;
+    padding: 5px 15px; border-radius: 4px; cursor: pointer;
 }
+.fs-btn:hover { background: var(--primary); border-color: var(--primary); }
