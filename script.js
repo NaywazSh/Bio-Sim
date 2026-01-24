@@ -6,31 +6,44 @@
   thumbnail: Image URL (can be local 'assets/img.jpg' or external link).
 */
 
+   /* 
+  CONFIGURATION AREA 
+*/
+
 const simulations = [
     {
         id: 1,
         title: "Plant Cell Structure",
-        description: "Explore the organelles of a plant cell in 3D. Identify the chloroplasts and cell wall.",
-        grade: "Grade 8-10",
+        description: "Explore the organelles of a plant cell. Use buttons to highlight the Nucleus, Vacuole, and Chloroplasts.",
+        grade: "Grade 7-9",
         file: "plant-cell.html", 
-        thumbnail: "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?auto=format&fit=crop&w=500&q=60" // Placeholder image
+        thumbnail: "https://images.unsplash.com/photo-1596323281146-2436f5289912?auto=format&fit=crop&w=500&q=60" 
     },
     {
         id: 2,
-        title: "Human DNA Helix",
-        description: "Interactive rotation of the double helix structure. Learn about base pairs.",
+        title: "DNA Double Helix",
+        description: "Interactive DNA strand. Use the slider to unwind the helix and observe base pair connections.",
         grade: "Grade 10-12",
         file: "dna-helix.html",
-        thumbnail: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=500&q=60" 
+        thumbnail: "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?auto=format&fit=crop&w=500&q=60" 
     },
-  {
-    id: 3,
-    title: "Human Heart",
-    description: "Real-time pumping heart model.",
-    grade: "Grade 11",
-    file: "heart.html",
-    thumbnail: "assets/heart.jpg"
-},
+    {
+        id: 3,
+        title: "Human Heart",
+        description: "A 3D pumping heart model demonstrating ventricular contraction and artery placement.",
+        grade: "Grade 11",
+        file: "heart.html",
+        thumbnail: "https://images.unsplash.com/photo-1559757175-5700dde675bc?auto=format&fit=crop&w=500&q=60" 
+    },
+    {
+        id: 4,
+        title: "Bacteriophage Virus",
+        description: "A 3D model of a virus structure showing the protein capsid and tail fibers.",
+        grade: "Grade 11-12",
+        file: "virus.html",
+        thumbnail: "https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&w=500&q=60" 
+    }
+];
     // COPY AND PASTE THE BLOCK ABOVE TO ADD MORE CARDS
 ];
 
