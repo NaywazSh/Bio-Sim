@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Virus Simulation</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%); }
+        .label {
+            position: absolute; color: #ff5555; font-family: monospace; font-weight: bold;
+            background: rgba(0,0,0,0.5); padding: 5px; border-radius: 4px; display: none;
+        }
+    </style>
+</head>
+<body>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, virusGroup;
+
+        function init() {
+            scene = new THREE.Scene();
+            // No background color set here, using CSS gradient
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 2, 12);
+
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 1.0;
+
+            // Lights
+            const ambient = new THREE.AmbientLight(0x404040, 2);
+            scene.add(ambient);
+            const spotLight = new THREE.SpotLight(0xffffff, 2);
+            spotLight.position.set(10, 10, 10);
+            scene.add(spotLight);
+            
+            // Build Virus
+            virusGroup = new THREE.Group();
+            scene.add(virusGroup);
+            
+            const proteinMat = new THREE.MeshPhongMaterial({ color: 0x800080, flatShading: true }); // Purple
+            const dnaMat = new THREE.MeshPhongMaterial({ color: 0x00ffcc }); // Teal
+
+            // 1. Head (Capsid) - Icosahedron
+            const headGeo = new THREE.IcosahedronGeometry(2.5, 0);
+            const head = new THREE.Mesh(headGeo, proteinMat);
+            head.position.y = 3;
+            virusGroup.add(head);
+
+            // 2. Neck/Tail
+            const tailGeo = new THREE.CylinderGeometry(0.8, 0.8, 3, 8);
+            const tail = new THREE.Mesh(tailGeo, new THREE.MeshPhongMaterial({color: 0x550055}));
+            tail.position.y = 0.5;
+            virusGroup.add(tail);
+
+            // 3. Base Plate
+            const baseGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.2, 6);
+            const base = new THREE.Mesh(baseGeo, proteinMat);
+            base.position.y = -1;
+            virusGroup.add(base);
+
+            // 4. Legs (Spikes)
+            for(let i=0; i<6; i++) {
+                const legGroup = new THREE.Group();
+                const angle = (i / 6) * Math.PI * 2;
+                
+                // Upper Leg
+                const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 0.2), proteinMat);
+                leg1.position.set(0, -1, 0);
+                leg1.rotation.z = Math.PI / 4; // Tilt out
+                
+                // Lower Leg
+                const leg2 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 0.2), proteinMat);
+                leg2.position.set(1, -2.2, 0);
+                leg2.rotation.z = -Math.PI / 4; // Tilt down
+                
+                legGroup.add(leg1);
+                legGroup.add(leg2);
+                
+                // Position and rotate around center
+                legGroup.position.set(Math.cos(angle)*1.2, -1, Math.sin(angle)*1.2);
+                legGroup.rotation.y = -angle; // Face outward
+                
+                virusGroup.add(legGroup);
+            }
+
+            animate();
+        }
+
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.03;
+
+            // Floating animation
+            virusGroup.position.y = Math.sin(time) * 0.5;
+            
+            // Subtle "breathing" scale
+            const scale = 1 + Math.sin(time * 2) * 0.02;
+            virusGroup.scale.set(scale, scale, scale);
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        init();
+    </script>
+</body>
+</html>
