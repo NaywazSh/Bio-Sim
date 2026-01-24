@@ -1,7 +1,6 @@
 /* 
   CONFIGURATION AREA 
 */
-
 const simulations = [
     {
         id: 1,
@@ -37,21 +36,34 @@ const simulations = [
     }
 ];
 
-// --- SIMPLE LOGIC ---
+// --- SMART LOGIC ---
 
-const grid = document.getElementById('simulation-grid');
+document.addEventListener('DOMContentLoaded', () => {
+    
+    // Check which page we are on
+    const grid = document.getElementById('simulation-grid');
+    const iframe = document.getElementById('sim-frame');
 
-function init() {
-    grid.innerHTML = ""; 
+    if (grid) {
+        // We are on index.html -> Generate Cards
+        loadGrid(grid);
+    } 
+    else if (iframe) {
+        // We are on player.html -> Load Simulation
+        loadPlayer(iframe);
+    }
+});
+
+function loadGrid(gridContainer) {
+    gridContainer.innerHTML = ""; 
     
     simulations.forEach(sim => {
-        // Create an Anchor Tag <a> instead of a div
-        const card = document.createElement('a');
+        const card = document.createElement('div'); // Using div so we can use JS to click
         card.className = 'card';
-        // This makes it link directly to the file
-        card.href = `simulations/${sim.file}`;
-        // Opens in a new tab (Remove this line if you want it to open in the same tab)
-        card.target = "_blank"; 
+        // When clicked, go to player.html with the ID attached
+        card.onclick = () => {
+            window.location.href = `player.html?id=${sim.id}`;
+        };
 
         card.innerHTML = `
             <div class="card-thumb" style="background-image: url('${sim.thumbnail}')"></div>
@@ -63,8 +75,36 @@ function init() {
             </div>
         `;
         
-        grid.appendChild(card);
+        gridContainer.appendChild(card);
     });
 }
 
-document.addEventListener('DOMContentLoaded', init);
+function loadPlayer(iframeElement) {
+    // 1. Get the ID from the URL (e.g., player.html?id=3)
+    const params = new URLSearchParams(window.location.search);
+    const simId = params.get('id');
+
+    // 2. Find the matching simulation
+    const sim = simulations.find(s => s.id == simId);
+
+    if (sim) {
+        // 3. Update the page
+        document.getElementById('sim-title').innerText = sim.title;
+        iframeElement.src = `simulations/${sim.file}`;
+        document.title = `Playing: ${sim.title}`;
+    } else {
+        // Error handling
+        document.getElementById('sim-title').innerText = "Simulation Not Found";
+    }
+}
+
+function toggleFullscreen() {
+    const elem = document.querySelector('.iframe-wrapper');
+    if (!document.fullscreenElement) {
+        elem.requestFullscreen().catch(err => {
+            alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+}
