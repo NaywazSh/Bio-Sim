@@ -1,0 +1,10 @@
+/bio-sim-project
+  ├── index.html          (The main landing page)
+  ├── style.css           (The design/looks)
+  ├── script.js           (The logic/card generator)
+  ├── /simulations        (Folder where you put your 3D HTML files)
+  │     ├── plant-cell.html
+  │     └── dna-helix.html
+  └── /assets             (Folder for images/thumbnails)
+        ├── plant-thumb.jpg
+        └── dna-thumb.jpg
