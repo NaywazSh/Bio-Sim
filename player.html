@@ -14,24 +14,25 @@
     <nav class="navbar">
         <div class="logo">Bio<span class="highlight">Verse</span></div>
         <div class="nav-links">
-            <!-- Back button returns to Index -->
             <a href="index.html"><i class="fas fa-arrow-left"></i> Back to Library</a>
         </div>
     </nav>
 
     <!-- The Simulation Container -->
     <div class="player-container">
+        
         <div class="player-header">
             <h2 id="sim-title">Loading...</h2>
-            <div class="controls">
-                <button onclick="toggleFullscreen()" class="fs-btn"><i class="fas fa-expand"></i> Fullscreen</button>
-            </div>
+            <button onclick="toggleFullscreen()" class="fs-btn">
+                <i class="fas fa-expand"></i> Fullscreen
+            </button>
         </div>
         
         <!-- The Window into your 3D file -->
         <div class="iframe-wrapper">
-            <iframe id="sim-frame" src="" frameborder="0" allowfullscreen></iframe>
+            <iframe id="sim-frame" src="" allowfullscreen></iframe>
         </div>
+
     </div>
 
     <script src="script.js"></script>
