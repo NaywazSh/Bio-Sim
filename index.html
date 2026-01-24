@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BioVerse | 3D Biology Simulations</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -16,44 +14,27 @@
     <nav class="navbar">
         <div class="logo">Bio<span class="highlight">Verse</span></div>
         <div class="nav-links">
-            <a href="#" class="active" onclick="closeViewer()">Library</a>
+            <a href="#">Library</a>
             <a href="#about">About</a>
         </div>
     </nav>
 
-    <!-- Main Library View -->
-    <main id="library-view">
+    <!-- Main Content -->
+    <main>
         <header class="hero">
             <h1>Interactive Biology</h1>
-            <p>Immersive 3D simulations for Grade 7-12. Explore the building blocks of life.</p>
+            <p>Immersive 3D simulations for Grade 7-12. Click a card to start exploring.</p>
         </header>
 
         <section class="container">
             <div class="filter-bar">
                 <h2>Available Simulations</h2>
-                <!-- You can add specific grade filters here later -->
             </div>
             
-            <!-- This Grid is empty; JS will fill it -->
+            <!-- The Grid is filled by JavaScript -->
             <div id="simulation-grid" class="grid"></div>
         </section>
     </main>
-
-    <!-- Simulation Viewer (Hidden by default) -->
-    <div id="viewer-overlay" class="hidden">
-        <div class="viewer-header">
-            <button class="back-btn" onclick="closeViewer()">
-                <i class="fas fa-arrow-left"></i> Back to Library
-            </button>
-            <h3 id="viewer-title">Simulation Title</h3>
-            <div class="viewer-controls">
-                <button onclick="toggleFullscreen()"><i class="fas fa-expand"></i></button>
-            </div>
-        </div>
-        <div class="iframe-container">
-            <iframe id="sim-frame" src="" frameborder="0"></iframe>
-        </div>
-    </div>
 
     <footer>
         <p>&copy; 2024 BioVerse Education. Open Source Biology.</p>
