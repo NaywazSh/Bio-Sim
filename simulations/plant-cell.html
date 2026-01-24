@@ -2,110 +2,139 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Virus Simulation</title>
+    <title>3D Plant Cell</title>
     <style>
-        body { margin: 0; overflow: hidden; background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%); }
-        .label {
-            position: absolute; color: #ff5555; font-family: monospace; font-weight: bold;
-            background: rgba(0,0,0,0.5); padding: 5px; border-radius: 4px; display: none;
+        body { margin: 0; overflow: hidden; background-color: #0f172a; font-family: 'Segoe UI', sans-serif; }
+        #info {
+            position: absolute; top: 10px; left: 10px; color: white;
+            background: rgba(0,0,0,0.7); padding: 10px; border-radius: 8px; pointer-events: none;
         }
+        .controls {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 10px;
+        }
+        button {
+            padding: 10px 20px; background: #10b981; border: none; border-radius: 5px;
+            color: white; font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+        button:hover { background: #059669; transform: scale(1.05); }
     </style>
 </head>
 <body>
-    
+    <div id="info">
+        <h2>Plant Cell Model</h2>
+        <p>Drag to Rotate | Scroll to Zoom</p>
+    </div>
+
+    <div class="controls">
+        <button onclick="highlight('nucleus')">Nucleus</button>
+        <button onclick="highlight('chloroplast')">Chloroplasts</button>
+        <button onclick="highlight('vacuole')">Vacuole</button>
+        <button onclick="resetView()">Reset</button>
+    </div>
+
+    <!-- Three.js Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
     <script>
-        let scene, camera, renderer, virusGroup;
+        let scene, camera, renderer, controls;
+        let nucleus, vacuole, chloroplasts = [];
 
         function init() {
+            // 1. Scene Setup
             scene = new THREE.Scene();
-            // No background color set here, using CSS gradient
+            scene.background = new THREE.Color(0x0f172a);
+            scene.fog = new THREE.Fog(0x0f172a, 10, 50);
 
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 2, 12);
+            camera.position.set(5, 5, 5);
 
-            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            const controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.autoRotate = true;
-            controls.autoRotateSpeed = 1.0;
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
 
-            // Lights
-            const ambient = new THREE.AmbientLight(0x404040, 2);
-            scene.add(ambient);
-            const spotLight = new THREE.SpotLight(0xffffff, 2);
-            spotLight.position.set(10, 10, 10);
-            scene.add(spotLight);
+            // 2. Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            const pointLight = new THREE.PointLight(0xffffff, 1);
+            pointLight.position.set(10, 10, 10);
+            scene.add(pointLight);
+
+            // 3. Objects
+
+            // Cell Wall (Box)
+            const wallGeo = new THREE.BoxGeometry(6, 4, 4);
+            const wallMat = new THREE.MeshPhysicalMaterial({ 
+                color: 0x4ade80, transparent: true, opacity: 0.3, roughness: 0.1, transmission: 0.5 
+            });
+            const cellWall = new THREE.Mesh(wallGeo, wallMat);
             
-            // Build Virus
-            virusGroup = new THREE.Group();
-            scene.add(virusGroup);
-            
-            const proteinMat = new THREE.MeshPhongMaterial({ color: 0x800080, flatShading: true }); // Purple
-            const dnaMat = new THREE.MeshPhongMaterial({ color: 0x00ffcc }); // Teal
+            // Cell Edges (for outline)
+            const edges = new THREE.EdgesGeometry(wallGeo);
+            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x22c55e }));
+            cellWall.add(line);
+            scene.add(cellWall);
 
-            // 1. Head (Capsid) - Icosahedron
-            const headGeo = new THREE.IcosahedronGeometry(2.5, 0);
-            const head = new THREE.Mesh(headGeo, proteinMat);
-            head.position.y = 3;
-            virusGroup.add(head);
+            // Nucleus (Sphere)
+            const nucGeo = new THREE.SphereGeometry(0.8, 32, 32);
+            const nucMat = new THREE.MeshStandardMaterial({ color: 0xe11d48 });
+            nucleus = new THREE.Mesh(nucGeo, nucMat);
+            nucleus.position.set(-1.5, 0, 0);
+            scene.add(nucleus);
 
-            // 2. Neck/Tail
-            const tailGeo = new THREE.CylinderGeometry(0.8, 0.8, 3, 8);
-            const tail = new THREE.Mesh(tailGeo, new THREE.MeshPhongMaterial({color: 0x550055}));
-            tail.position.y = 0.5;
-            virusGroup.add(tail);
+            // Vacuole (Large Bubble)
+            const vacGeo = new THREE.SphereGeometry(1.2, 32, 32);
+            const vacMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.8 });
+            vacuole = new THREE.Mesh(vacGeo, vacMat);
+            vacuole.position.set(1, 0, 0);
+            vacuole.scale.set(1, 0.8, 1);
+            scene.add(vacuole);
 
-            // 3. Base Plate
-            const baseGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.2, 6);
-            const base = new THREE.Mesh(baseGeo, proteinMat);
-            base.position.y = -1;
-            virusGroup.add(base);
+            // Chloroplasts (Small Green Pills)
+            const chloroGeo = new THREE.CapsuleGeometry(0.3, 0.6, 4, 8);
+            const chloroMat = new THREE.MeshStandardMaterial({ color: 0x166534 });
 
-            // 4. Legs (Spikes)
-            for(let i=0; i<6; i++) {
-                const legGroup = new THREE.Group();
-                const angle = (i / 6) * Math.PI * 2;
-                
-                // Upper Leg
-                const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 0.2), proteinMat);
-                leg1.position.set(0, -1, 0);
-                leg1.rotation.z = Math.PI / 4; // Tilt out
-                
-                // Lower Leg
-                const leg2 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 0.2), proteinMat);
-                leg2.position.set(1, -2.2, 0);
-                leg2.rotation.z = -Math.PI / 4; // Tilt down
-                
-                legGroup.add(leg1);
-                legGroup.add(leg2);
-                
-                // Position and rotate around center
-                legGroup.position.set(Math.cos(angle)*1.2, -1, Math.sin(angle)*1.2);
-                legGroup.rotation.y = -angle; // Face outward
-                
-                virusGroup.add(legGroup);
-            }
+            const positions = [
+                {x: -1, y: 1.2, z: 1}, {x: 0, y: -1.2, z: -1}, {x: 2, y: 1, z: 1}, 
+                {x: -2, y: -0.5, z: 1.2}, {x: 1.5, y: -1, z: -1}
+            ];
+
+            positions.forEach(pos => {
+                const chloro = new THREE.Mesh(chloroGeo, chloroMat);
+                chloro.position.set(pos.x, pos.y, pos.z);
+                chloro.rotation.z = Math.random();
+                scene.add(chloro);
+                chloroplasts.push(chloro);
+            });
 
             animate();
         }
 
-        let time = 0;
+        // Interaction Logic
+        function highlight(part) {
+            // Reset colors
+            nucleus.material.emissive.setHex(0x000000);
+            vacuole.material.emissive.setHex(0x000000);
+            chloroplasts.forEach(c => c.material.emissive.setHex(0x000000));
+
+            if(part === 'nucleus') nucleus.material.emissive.setHex(0xffaaaa);
+            if(part === 'vacuole') vacuole.material.emissive.setHex(0x0000ff);
+            if(part === 'chloroplast') chloroplasts.forEach(c => c.material.emissive.setHex(0x00ff00));
+        }
+
+        function resetView() {
+            camera.position.set(5, 5, 5);
+            controls.target.set(0,0,0);
+            highlight('none');
+        }
+
         function animate() {
             requestAnimationFrame(animate);
-            time += 0.03;
-
-            // Floating animation
-            virusGroup.position.y = Math.sin(time) * 0.5;
-            
-            // Subtle "breathing" scale
-            const scale = 1 + Math.sin(time * 2) * 0.02;
-            virusGroup.scale.set(scale, scale, scale);
-
+            controls.update();
             renderer.render(scene, camera);
         }
 
