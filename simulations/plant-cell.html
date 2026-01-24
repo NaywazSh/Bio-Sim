@@ -5,94 +5,125 @@
     <title>3D Plant Cell</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #0f172a; font-family: sans-serif; }
-        #info { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.5); padding: 10px; pointer-events: none; }
-        .controls { position: absolute; bottom: 20px; width: 100%; text-align: center; }
-        button { padding: 10px; margin: 0 5px; cursor: pointer; background: #10b981; border: none; color: white; font-weight: bold; }
+        #info { 
+            position: absolute; top: 10px; width: 100%; text-align: center;
+            color: white; background: rgba(0,0,0,0.5); padding: 5px; pointer-events: none; 
+            z-index: 10;
+        }
+        .controls { 
+            position: absolute; bottom: 20px; width: 100%; text-align: center; 
+            z-index: 10;
+        }
+        button { 
+            padding: 10px 20px; margin: 0 5px; cursor: pointer; 
+            background: #10b981; border: none; border-radius: 4px;
+            color: white; font-weight: bold; font-size: 14px;
+        }
         button:hover { background: #059669; }
     </style>
 </head>
 <body>
-    <div id="info">Drag to Rotate | Scroll to Zoom</div>
+    <div id="info"><h3>Plant Cell Model</h3><p>Left Click to Rotate | Scroll to Zoom</p></div>
+    
     <div class="controls">
         <button onclick="highlight('nucleus')">Nucleus</button>
         <button onclick="highlight('chloroplast')">Chloroplasts</button>
         <button onclick="highlight('vacuole')">Vacuole</button>
-        <button onclick="resetView()">Reset</button>
+        <button onclick="resetView()">Reset Colors</button>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Using a slightly newer version (r132) to ensure stability -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r132/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.132.0/examples/js/controls/OrbitControls.js"></script>
 
     <script>
         let scene, camera, renderer, controls;
         let nucleus, vacuole, chloroplasts = [];
 
         function init() {
+            // 1. Scene Setup
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0f172a); 
+            scene.background = new THREE.Color(0x0f172a); // Dark Blue-Grey
 
-            // Camera Setup
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(6, 6, 6); // Moved camera back slightly
+            // 2. Camera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 8); // Move back to see everything
 
+            // 3. Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
+            // 4. Controls
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
 
-            // Bright Lights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            // 5. Lighting (Critical for 3D visibility)
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
             scene.add(ambientLight);
-            const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-            dirLight.position.set(5, 10, 7);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 5, 5);
             scene.add(dirLight);
 
-            // --- OBJECTS ---
+            // --- BUILD THE CELL ---
 
-            // Cell Wall (Simpler Material)
-            const wallGeo = new THREE.BoxGeometry(6, 4, 4);
-            const wallMat = new THREE.MeshPhongMaterial({ 
+            // A. Cell Wall (Green Box)
+            const wallGeo = new THREE.BoxGeometry(5, 3.5, 3.5);
+            // Using MeshLambert for better performance and visibility
+            const wallMat = new THREE.MeshLambertMaterial({ 
                 color: 0x4ade80, 
                 transparent: true, 
-                opacity: 0.2, 
-                side: THREE.DoubleSide 
+                opacity: 0.15,
+                side: THREE.DoubleSide,
+                depthWrite: false // Helps with transparency bugs
             });
             const cellWall = new THREE.Mesh(wallGeo, wallMat);
             
-            // Green Outline
+            // Wireframe Outline
             const edges = new THREE.EdgesGeometry(wallGeo);
             const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x22c55e }));
             cellWall.add(line);
             scene.add(cellWall);
 
-            // Nucleus (Red Sphere)
-            const nucGeo = new THREE.SphereGeometry(0.8, 32, 32);
-            const nucMat = new THREE.MeshPhongMaterial({ color: 0xe11d48 });
+            // B. Nucleus (Red Sphere)
+            const nucGeo = new THREE.SphereGeometry(0.7, 32, 32);
+            const nucMat = new THREE.MeshLambertMaterial({ color: 0xe11d48 });
             nucleus = new THREE.Mesh(nucGeo, nucMat);
-            nucleus.position.set(-1.5, 0, 0);
+            nucleus.position.set(-1.2, 0, 0);
             scene.add(nucleus);
 
-            // Vacuole (Blue Sphere)
-            const vacGeo = new THREE.SphereGeometry(1.2, 32, 32);
-            const vacMat = new THREE.MeshPhongMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.7 });
+            // C. Vacuole (Blue Bubble)
+            const vacGeo = new THREE.SphereGeometry(1.0, 32, 32);
+            const vacMat = new THREE.MeshLambertMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.6 });
             vacuole = new THREE.Mesh(vacGeo, vacMat);
-            vacuole.position.set(1, 0, 0);
-            vacuole.scale.set(1, 0.8, 1);
+            vacuole.position.set(1.0, 0, 0);
+            vacuole.scale.set(1, 0.7, 1); // Squish it slightly
             scene.add(vacuole);
 
-            // Chloroplasts
-            const chloroGeo = new THREE.CapsuleGeometry(0.3, 0.6, 4, 8);
-            const chloroMat = new THREE.MeshPhongMaterial({ color: 0x166534 });
+            // D. Chloroplasts (Green Cylinders)
+            // FIXED: Switched from CapsuleGeometry to CylinderGeometry for compatibility
+            const chloroGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.8, 16);
+            const chloroMat = new THREE.MeshLambertMaterial({ color: 0x15803d }); // Dark Green
+
             const positions = [
-                {x: -1, y: 1.2, z: 1}, {x: 0, y: -1.2, z: -1}, {x: 2, y: 1, z: 1}, 
-                {x: -2, y: -0.5, z: 1.2}, {x: 1.5, y: -1, z: -1}
+                {x: -1, y: 1.0, z: 1.0}, 
+                {x: 0, y: -1.0, z: -1.0}, 
+                {x: 1.8, y: 0.8, z: 0.8}, 
+                {x: -1.8, y: -0.5, z: 1.0}, 
+                {x: 1.2, y: -1.0, z: -0.8},
+                {x: 0.5, y: 1.2, z: -0.5}
             ];
+
             positions.forEach(pos => {
                 const chloro = new THREE.Mesh(chloroGeo, chloroMat);
                 chloro.position.set(pos.x, pos.y, pos.z);
-                chloro.rotation.z = Math.random();
+                
+                // Random rotation to make them look organic
+                chloro.rotation.x = Math.random() * Math.PI;
+                chloro.rotation.z = Math.random() * Math.PI;
+                
                 scene.add(chloro);
                 chloroplasts.push(chloro);
             });
@@ -100,31 +131,32 @@
             animate();
         }
 
-        function highlight(part) {
-            // Reset to original colors
-            nucleus.material.color.setHex(0xe11d48);
-            vacuole.material.color.setHex(0x3b82f6);
-            chloroplasts.forEach(c => c.material.color.setHex(0x166534));
+        // --- INTERACTION LOGIC ---
 
-            // Set Highlight color (Yellow)
+        function highlight(part) {
+            // 1. Reset everyone to default colors
+            nucleus.material.color.setHex(0xe11d48); // Red
+            vacuole.material.color.setHex(0x3b82f6); // Blue
+            chloroplasts.forEach(c => c.material.color.setHex(0x15803d)); // Green
+
+            // 2. Make the selected part Bright Yellow
             if(part === 'nucleus') nucleus.material.color.setHex(0xffff00);
             if(part === 'vacuole') vacuole.material.color.setHex(0xffff00);
             if(part === 'chloroplast') chloroplasts.forEach(c => c.material.color.setHex(0xffff00));
         }
 
         function resetView() {
-            camera.position.set(6, 6, 6);
-            controls.target.set(0,0,0);
+            controls.reset();
             highlight('none');
         }
 
         function animate() {
             requestAnimationFrame(animate);
-            controls.update();
+            controls.update(); // Required for damping
             renderer.render(scene, camera);
         }
-        
-        // Handle window resize
+
+        // Handle Resizing
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
