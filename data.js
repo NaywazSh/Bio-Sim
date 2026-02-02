@@ -1,7 +1,7 @@
 // data.js
 const simulations = [
     // =========================================
-    // GRADE 7-9 (Free Content)
+    // JUNIOR BIOLOGY (Grades 7-10) - FREE
     // =========================================
     {
         id: 'bio_1',
@@ -13,7 +13,7 @@ const simulations = [
         file: "simulations/plant-cell.html",
         isFree: true
     },
-     {
+    {
         id: 'bio_2',
         title: "Human Digestive System",
         topic: "Human Physiology",
@@ -45,7 +45,7 @@ const simulations = [
     },
 
     // =========================================
-    // GRADE 10-12 (Premium Content)
+    // ADVANCED BIOLOGY (Grades 11-12) - PREMIUM
     // =========================================
     {
         id: 'bio_5',
@@ -76,7 +76,7 @@ const simulations = [
         image: "https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&w=600&q=60", 
         file: "simulations/virus.html",
         isFree: false
-    }
+    }, // <--- I ADDED THE MISSING COMMA HERE
     {
         id: 'bio_8',
         title: "Renal Anatomy (Kidney)",
